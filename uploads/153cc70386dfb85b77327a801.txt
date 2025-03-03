@@ -1,0 +1,31 @@
+[2025-02-20T10:00:00Z] INFO Application started successfully
+[2025-02-20T10:01:15Z] DEBUG User login attempt {"userId": 123, "ip": "192.168.1.1"}
+[2025-02-20T10:01:16Z] INFO User logged in successfully {"userId": 123, "ip": "192.168.1.1"}
+[2025-02-20T10:02:30Z] WARNING Slow database query detected {"query": "SELECT * FROM users", "duration": 1500}
+[2025-02-20T10:03:45Z] ERROR Database connection timeout {"userId": 456, "ip": "192.168.1.2"}
+[2025-02-20T10:04:00Z] DEBUG Connection retry attempt 1
+[2025-02-20T10:04:05Z] INFO Database connection established
+[2025-02-20T10:05:20Z] WARNING Memory usage high {"usage": "85%", "ip": "192.168.1.3"}
+[2025-02-20T10:06:35Z] ERROR Failed to process payment {"userId": 789, "amount": 99.99, "ip": "192.168.1.4"}
+[2025-02-20T10:07:50Z] CRITICAL System crash detected {"component": "auth-service", "ip": "192.168.1.5"}
+[2025-02-20T10:08:00Z] INFO System recovery initiated
+[2025-02-20T10:08:05Z] DEBUG Recovery process started {"step": 1}
+[2025-02-20T10:08:10Z] DEBUG Recovery process continued {"step": 2}
+[2025-02-20T10:08:15Z] INFO System recovered successfully
+[2025-02-20T10:09:30Z] WARNING API rate limit approaching {"userId": 101, "ip": "192.168.1.6", "requests": 95}
+[2025-02-20T10:10:45Z] ERROR API rate limit exceeded {"userId": 101, "ip": "192.168.1.6", "requests": 105}
+[2025-02-20T10:12:00Z] INFO User logged out {"userId": 123, "ip": "192.168.1.1"}
+[2025-02-20T10:13:15Z] DEBUG Cleanup process started
+[2025-02-20T10:14:30Z] INFO Cleanup completed {"removedSessions": 15}
+[2025-02-20T10:15:45Z] WARNING Suspicious login attempt {"ip": "10.0.0.1", "attempts": 5}
+[2025-02-20T10:17:00Z] ERROR Authentication failed {"ip": "10.0.0.1", "reason": "too many attempts"}
+[2025-02-20T10:18:15Z] INFO IP blocked {"ip": "10.0.0.1", "duration": "1 hour"}
+[2025-02-20T10:19:30Z] DEBUG Configuration reload requested
+[2025-02-20T10:20:45Z] INFO Configuration reloaded successfully
+[2025-02-20T10:22:00Z] WARNING Disk space low {"usage": "92%", "path": "/var/log"}
+[2025-02-20T10:23:15Z] ERROR Failed to write log file {"path": "/var/log/app.log", "reason": "no space left"}
+[2025-02-20T10:24:30Z] CRITICAL Service unavailable {"service": "logging", "ip": "192.168.1.7"}
+[2025-02-20T10:25:45Z] INFO Emergency cleanup initiated
+[2025-02-20T10:26:00Z] DEBUG Removing old log files
+[2025-02-20T10:26:15Z] INFO Disk space freed {"freed": "5GB"}
+[2025-02-20T10:27:30Z] INFO Service restored {"service": "logging"}
