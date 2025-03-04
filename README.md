@@ -33,7 +33,7 @@ A full-stack application featuring a Node.js microservice that processes large l
 
 ```bash
 git clone <repository-url>
-cd log-processing-microservice
+npm i
 ```
 
 ### 2. Set up Supabase
@@ -111,20 +111,10 @@ docker-compose up -d
 ├── public/               # Static assets
 ├── styles/               # CSS styles
 ├── supabase/             # Supabase migrations
-├── uploads/              # Temporary storage for uploaded files
 ├── Dockerfile            # Docker configuration
 ├── docker-compose.yml    # Docker Compose configuration
 └── README.md             # Project documentation
 ```
-
-## Performance Benchmarks
-
-| File Size | Processing Time | Memory Usage | Concurrent Jobs |
-|-----------|----------------|--------------|-----------------|
-| 1MB       | ~2 seconds     | ~100MB       | 4               |
-| 10MB      | ~15 seconds    | ~150MB       | 4               |
-| 100MB     | ~2 minutes     | ~300MB       | 4               |
-| 1GB       | ~4.5 minutes   | ~800MB       | 4               |
 
 ## Future Improvements
 
@@ -133,7 +123,3 @@ docker-compose up -d
 - Implement more advanced analytics and visualization
 - Add export functionality for processed data
 - Implement more comprehensive error handling and retry mechanisms
-
-## License
-
-MIT# FileProcessing
