@@ -2,6 +2,12 @@
 
 A full-stack application featuring a Node.js microservice that processes large log files asynchronously using BullMQ, a Next.js frontend with React for real-time analytics, and Supabase for authentication and database storage.
 
+## Docs 
+https://docs.google.com/document/d/1FDe9kx4T5OwHkE-XmgaJwnW5aUHB_xXZZQ2um1Th13w/edit?usp=sharing
+
+## Demo
+
+
 ## Features
 
 - **Asynchronous Log Processing**: Upload and process large log files without blocking the main thread

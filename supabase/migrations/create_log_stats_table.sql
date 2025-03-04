@@ -23,10 +23,6 @@
     - Add policy for authenticated users to read their own data
     - Add policy for authenticated users to insert their own data
     - Add policy for authenticated users to update their own data
-  3. Storage
-    - Create a storage bucket for log files
-    - Enable RLS on the bucket
-    - Add policies for authenticated users to manage their own files
 */
 
 -- Create log_stats table
@@ -74,41 +70,3 @@ CREATE POLICY "Users can update their own log stats"
 CREATE INDEX IF NOT EXISTS log_stats_user_id_idx ON log_stats (user_id);
 CREATE INDEX IF NOT EXISTS log_stats_job_id_idx ON log_stats (job_id);
 CREATE INDEX IF NOT EXISTS log_stats_created_at_idx ON log_stats (created_at);
-
--- Create storage bucket for log files
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('log_files', 'log_files', false)
-ON CONFLICT (id) DO NOTHING;
-
--- Enable RLS on the bucket
-UPDATE storage.buckets
-SET public = false
-WHERE id = 'log_files';
-
--- Create policies for the storage bucket
-CREATE POLICY "Users can upload their own log files"
-  ON storage.objects
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    bucket_id = 'log_files' AND
-    auth.uid()::text = (storage.foldername(name))[1]
-  );
-
-CREATE POLICY "Users can read their own log files"
-  ON storage.objects
-  FOR SELECT
-  TO authenticated
-  USING (
-    bucket_id = 'log_files' AND
-    auth.uid()::text = (storage.foldername(name))[1]
-  );
-
-CREATE POLICY "Users can delete their own log files"
-  ON storage.objects
-  FOR DELETE
-  TO authenticated
-  USING (
-    bucket_id = 'log_files' AND
-    auth.uid()::text = (storage.foldername(name))[1]
-  );
