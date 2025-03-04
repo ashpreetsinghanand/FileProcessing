@@ -1,8 +1,21 @@
 const { parseLogLine } = require('../lib/queue');
 
 // Mock the required modules
+const fs = require('fs');
 jest.mock('fs', () => ({
-  createReadStream: jest.fn(),
+  createReadStream: jest.fn(() => {
+    // Create a mock readable stream that emits the test log file contents
+    const { Readable } = require('stream');
+    const mockStream = new Readable();
+    mockStream._read = () => {};
+    
+    // Push some sample log lines
+    mockStream.push('[2025-02-20T10:00:00Z] INFO Application started successfully\n');
+    mockStream.push('[2025-02-20T10:01:15Z] ERROR Database timeout {"userId": 123, "ip": "192.168.1.1"}\n');
+    mockStream.push(null); // Signal end of stream
+    
+    return mockStream;
+  }),
   unlinkSync: jest.fn(),
 }));
 

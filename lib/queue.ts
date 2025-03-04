@@ -1,3 +1,5 @@
+const { createReadStream } = require("fs");
+const fs = require("fs");
 const { Queue, Worker, Job, QueueEvents } = require("bullmq");
 const { createInterface } = require("readline");
 const { getRedisInstance } = require("./redis");
@@ -25,7 +27,7 @@ export const logProcessingQueue = new Queue("log-processing-queue", {
   connection: getRedisInstance(),
   defaultJobOptions: {
     attempts: parseInt(process.env.MAX_RETRIES || "3"),
-    removeOnComplete: true,
+    removeOnComplete: 100,
     removeOnFail: 100,
   },
 });
@@ -63,6 +65,7 @@ export const parseLogLine = (line: string): LogEntryType | null => {
         ip = payload.ip || undefined;
       } catch (e) {
         // Invalid JSON payload, ignore
+        console.log("Invalid JSON payload:", jsonPayload);
       }
     }
 
@@ -84,7 +87,7 @@ export const createLogProcessingWorker = () => {
   const worker = new Worker(
     "log-processing-queue",
     async (job: JobType) => {
-      const { fileId, fileUrl, fileName, fileSize, userId } = job.data;
+      const { fileId, filePath, fileName, fileSize, userId } = job.data;
       console.log(`Starting to process job ${job.id} for file ${fileName}`);
       console.log(`File details:`, { fileId, fileSize, userId });
 
@@ -132,20 +135,13 @@ export const createLogProcessingWorker = () => {
           keywordMatches[keyword] = 0;
         });
 
-        // Fetch file content from Supabase storage
-        console.log(`Fetching file from Supabase storage: ${fileUrl}`);
-        const response = await fetch(fileUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch file: ${response.statusText}`);
-        }
-        console.log(`File fetched successfully`);
 
-        // Create readable stream from response
+        // Create readable stream for the log file
+        const fileStream = createReadStream(filePath, { encoding: "utf8" });
         const rl = createInterface({
-          input: response.body,
+          input: fileStream,
           crlfDelay: Infinity,
         });
-
         // Process the file line by line
         for await (const line of rl) {
           totalLines++;
@@ -179,22 +175,36 @@ export const createLogProcessingWorker = () => {
           }
 
           const logEntry = parseLogLine(line);
-          if (!logEntry) continue;
-
-          // Count errors and warnings
-          if (logEntry.level.toLowerCase() === "error") {
-            errorCount++;
-          } else if (logEntry.level.toLowerCase() === "warning") {
-            warningCount++;
+          if (!logEntry) {
+            console.log(`Log entry is null or undefined`);
+            continue;
           }
 
-          // Count keyword matches
-          const lowerMessage = logEntry.message.toLowerCase();
-          keywords.forEach((keyword) => {
-            if (lowerMessage.includes(keyword)) {
-              keywordMatches[keyword] = (keywordMatches[keyword] || 0) + 1;
-            }
-          });
+          // Count errors and warnings
+          if (logEntry.level) {
+            // console.log(`Log entry level: ${logEntry.level}`);
+            const levelLower = logEntry.level.toLowerCase();
+            console.log(`Log entry level lower: ${levelLower}`);
+           if (levelLower.includes("error")) {
+             errorCount++;
+           } else if (levelLower.includes("warning")) {
+             warningCount++;
+           }
+          }
+
+          // Count keyword matches safely
+          if (logEntry.message) {
+            const lowerMessage = logEntry.level.toLowerCase();
+            // console.log(`Log entry message: ${lowerMessage}---------------------------`);
+            
+            keywords.forEach((keyword) => {
+              // console.log(`Checking message: ${lowerMessage} for keyword: ${keyword}`);
+              if (lowerMessage.includes(keyword)) {
+                keywordMatches[keyword] = (keywordMatches[keyword] || 0) + 1;
+                // console.log(`Keyword matched: ${keyword}, Count: ${keywordMatches[keyword]}`);
+              }
+            });
+          }
 
           // Count IP addresses
           if (logEntry.ip) {
@@ -213,25 +223,23 @@ export const createLogProcessingWorker = () => {
         });
 
         // Update the stats in Supabase
+        const updateData = {
+          total_lines: totalLines,
+          error_count: errorCount,
+          warning_count: warningCount,
+          keyword_matches: keywordMatches,
+          ip_addresses: ipAddresses,
+          status: "completed",
+          updated_at: new Date().toISOString(),
+          processing_time: processingTime,
+        };
         await supabaseAdmin
           .from("log_stats")
-          .update({
-            total_lines: totalLines,
-            error_count: errorCount,
-            warning_count: warningCount,
-            keyword_matches: keywordMatches,
-            ip_addresses: ipAddresses,
-            status: "completed",
-            updated_at: new Date().toISOString(),
-            processing_time: processingTime,
-          })
+          .update(updateData)
           .eq("id", statsId);
 
-        // Delete the file from Supabase storage after processing
-        const filePath = fileUrl.split("/").slice(-3).join("/"); // Extract path from URL
-        console.log(`Deleting file from Supabase storage: ${filePath}`);
-        await supabaseAdmin.storage.from("log_files").remove([filePath]);
-        console.log(`File deleted successfully`);
+        // Clean up the temporary file
+        fs.unlinkSync(filePath);
 
         // Emit completion event via Socket.IO
         if (io) {
@@ -290,8 +298,9 @@ export const createLogProcessingWorker = () => {
     }
   );
 
-  worker.on("completed", (job: JobType, result: any) => {
+  worker.on("completed", async(job: JobType, result: any) => {
     console.log(`Job ${job.id} completed successfully with result:`, result);
+   
   });
 
   worker.on("failed", (job: JobType | undefined, error: Error) => {
@@ -308,7 +317,7 @@ export const createLogProcessingWorker = () => {
 // Add a job to the queue
 export const addLogProcessingJob = async (
   fileId: string,
-  fileUrl: string,
+  filePath : string,
   fileName: string,
   fileSize: number,
   userId: string
@@ -319,7 +328,7 @@ export const addLogProcessingJob = async (
     "process-log-file",
     {
       fileId,
-      fileUrl,
+      filePath,
       fileName,
       fileSize,
       userId,
@@ -376,3 +385,5 @@ export const getQueueStatus = async () => {
     total: waiting + active + completed + failed,
   };
 };
+
+createLogProcessingWorker()

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { LogStats } from '@/lib/supabase';
-
+import React from "react"
 interface StatsTableProps {
   stats: LogStats[];
   isLoading: boolean;

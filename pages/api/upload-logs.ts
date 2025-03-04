@@ -4,13 +4,19 @@ import formidable from "formidable";
 import { v4 as uuidv4 } from "uuid";
 import { createClient } from "@supabase/supabase-js";
 import { addLogProcessingJob } from "@/lib/queue";
-
+import fs from "fs";
+import path from "path";
 // Disable the default body parser to handle file uploads
 export const config = {
   api: {
     bodyParser: false,
   },
 };
+
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 const router = createRouter<NextApiRequest, NextApiResponse>();
 
@@ -74,6 +80,7 @@ router.post(async (req, res) => {
     // Parse the multipart form data
     const form = formidable({
       maxFileSize: 100 * 1024 * 1024, // 100MB max file size
+      uploadDir: uploadsDir,
       keepExtensions: true,
     });
 
@@ -86,37 +93,16 @@ router.post(async (req, res) => {
 
     // Generate a unique ID for the file
     const fileId = uuidv4();
+
+    // Get file details
+    const filePath = file.filepath;
     const fileName = file.originalFilename || "unknown-file";
     const fileSize = file.size;
-
-    // Create Supabase client
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    // Upload file to Supabase storage
-    const filePath = `${userId}/${fileId}/${fileName}`;
-    const { error: uploadError } = await supabase.storage
-      .from("log_files")
-      .upload(filePath, file.filepath, {
-        contentType: file.mimetype || "text/plain",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      throw uploadError;
-    }
-
-    // Get the public URL for the file
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("log_files").getPublicUrl(filePath);
 
     // Add job to the processing queue
     const job = await addLogProcessingJob(
       fileId,
-      publicUrl,
+      filePath,
       fileName,
       fileSize,
       userId
